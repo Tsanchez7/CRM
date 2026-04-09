@@ -1,32 +1,28 @@
 const { eventBus } = require("./eventBus");
-
-const insightStore = [];
-
-function addWorkflowInsight(insight) {
-  insightStore.unshift(insight);
-  // keep small in-memory history
-  if (insightStore.length > 50) insightStore.length = 50;
-}
+const { saveInsights } = require("./insightStoreService");
 
 function initWorkflow({ conversionRateThreshold }) {
   eventBus.on("kpis.calculated", ({ kpis }) => {
     if (!kpis) return;
 
     if (kpis.conversionRate < conversionRateThreshold) {
-      addWorkflowInsight({
-        id: `workflow-alert-${kpis.generatedAt}`,
-        type: "WORKFLOW_ALERT",
-        title: "Workflow: alerta de conversión",
-        message: `Regla aplicada: conversion_rate < ${conversionRateThreshold}.`,
-        createdAt: kpis.generatedAt,
-        meta: { conversionRate: kpis.conversionRate, conversionRateThreshold },
+      const kpiSnapshotAt = new Date(kpis.generatedAt);
+      void saveInsights([
+        {
+          source: "WORKFLOW",
+          kind: "CONVERSION_BELOW_THRESHOLD",
+          type: "WORKFLOW_ALERT",
+          title: "Workflow: alerta de conversión",
+          message: `Regla aplicada: conversion_rate < ${conversionRateThreshold}.`,
+          createdAt: kpiSnapshotAt,
+          kpiSnapshotAt,
+          meta: { conversionRate: kpis.conversionRate, conversionRateThreshold },
+        },
+      ]).catch(() => {
+        // ignore persistence errors in MVP
       });
     }
   });
 }
 
-function getWorkflowInsights() {
-  return [...insightStore];
-}
-
-module.exports = { initWorkflow, getWorkflowInsights };
+module.exports = { initWorkflow };
