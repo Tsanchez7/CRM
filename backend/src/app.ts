@@ -1,8 +1,8 @@
-const express = require("express");
-const cors = require("cors");
+import express, { type Request, type Response, type NextFunction } from "express";
+import cors from "cors";
 
-const { router: apiRouter } = require("./routes");
-const { initWorkflow } = require("./services/workflowService");
+import { router as apiRouter } from "./routes";
+import { initWorkflow } from "./services/workflowService";
 
 function getConfig() {
   const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
@@ -14,11 +14,10 @@ function getConfig() {
   };
 }
 
-function createApp() {
+export function createApp() {
   const app = express();
   const config = getConfig();
 
-  // init workflow once on boot
   initWorkflow({ conversionRateThreshold: config.conversionRateThreshold });
 
   app.use(cors({ origin: config.corsOrigin }));
@@ -26,22 +25,19 @@ function createApp() {
 
   app.use(apiRouter);
 
-  // Not found
-  app.use((req, res) => {
+  app.use((req: Request, res: Response) => {
     res.status(404).json({ error: "Not Found" });
   });
 
-  // Error handler
-  // eslint-disable-next-line no-unused-vars
-  app.use((err, req, res, next) => {
-    const status = err.statusCode || err.status || 500;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+    const anyErr = err as { statusCode?: number; status?: number; message?: string };
+    const status = anyErr.statusCode || anyErr.status || 500;
     res.status(status).json({
       error: "Internal Server Error",
-      message: err.message,
+      message: anyErr.message || "Unknown error",
     });
   });
 
   return app;
 }
-
-module.exports = { createApp };

@@ -1,12 +1,15 @@
-const { eventBus } = require("./eventBus");
-const { saveInsights } = require("./insightStoreService");
+import { eventBus } from "./eventBus";
+import { saveInsights } from "./insightStoreService";
 
-function initWorkflow({ conversionRateThreshold }) {
-  eventBus.on("kpis.calculated", ({ kpis }) => {
+type Kpis = { generatedAt: string; conversionRate: number };
+
+export function initWorkflow({ conversionRateThreshold }: { conversionRateThreshold: number }) {
+  eventBus.on("kpis.calculated", ({ kpis }: { kpis: Kpis }) => {
     if (!kpis) return;
 
     if (kpis.conversionRate < conversionRateThreshold) {
       const kpiSnapshotAt = new Date(kpis.generatedAt);
+
       void saveInsights([
         {
           source: "WORKFLOW",
@@ -24,5 +27,3 @@ function initWorkflow({ conversionRateThreshold }) {
     }
   });
 }
-
-module.exports = { initWorkflow };

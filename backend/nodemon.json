@@ -1,6 +1,6 @@
 {
   "watch": ["src"],
-  "ext": "js,json",
+  "ext": "ts,json",
   "ignore": ["node_modules"],
-  "exec": "node src/server.js"
+  "exec": "node -r ts-node/register src/server.ts"
 }

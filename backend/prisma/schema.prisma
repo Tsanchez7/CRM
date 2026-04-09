@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OpportunityStage {
+  OPEN
+  WON
+  LOST
+}
+
+enum InsightSource {
+  RULE
+  WORKFLOW
+}
+
+model Customer {
+  id           String        @id @default(cuid())
+  name         String
+  email        String?       @unique
+  createdAt    DateTime      @default(now())
+
+  opportunities Opportunity[]
+  transactions  Transaction[]
+}
+
+model Opportunity {
+  id         String           @id @default(cuid())
+  customerId String
+  customer   Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  stage      OpportunityStage @default(OPEN)
+  amount     Float            @default(0)
+  createdAt  DateTime         @default(now())
+  closedAt   DateTime?
+
+  transactions Transaction[]
+
+  @@index([customerId])
+  @@index([stage])
+}
+
+model Transaction {
+  id            String       @id @default(cuid())
+  customerId    String
+  customer      Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  amount        Float        @default(0)
+  occurredAt    DateTime     @default(now())
+
+  @@index([customerId])
+  @@index([opportunityId])
+  @@index([occurredAt])
+}
+
+model Insight {
+  id            String        @id @default(cuid())
+  source        InsightSource
+  kind          String
+  type          String
+  title         String
+  message       String
+  meta          Json?
+
+  kpiSnapshotAt DateTime
+  createdAt     DateTime      @default(now())
+
+  @@index([createdAt])
+  @@index([kpiSnapshotAt])
+  @@unique([source, kind, kpiSnapshotAt])
+}
